@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
-
-// Use locally served worker (public/pdf.worker.min.js) for offline + Vercel
-// Prefer ESM worker (pdf.worker.min.mjs); script copies into /public on install
-GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+// pdf.js is loaded dynamically on the client to avoid SSR build issues on Node 20
 
 type MappingField =
   | { id: string; page: number; type?: "text" | "date_de" | "checkbox"; x: number | null; y: number | null; w?: number; align?: "left" | "right" }
@@ -22,6 +18,7 @@ type Mapping = {
 export default function PdfMapper() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
+  const pdfjsRef = useRef<any>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [page, setPage] = useState<any>(null);
   const [scale, setScale] = useState(1);
@@ -48,6 +45,19 @@ export default function PdfMapper() {
     if (t === 'checkbox') return 'Auswahlfeld';
     return 'Text';
   };
+
+  // Load pdf.js only in the browser
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (typeof window === 'undefined') return;
+      const pdfjs = await import("pdfjs-dist");
+      // worker from public/
+      try { (pdfjs as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs"; } catch {}
+      if (mounted) pdfjsRef.current = pdfjs;
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     if (!pdfDoc) return;
@@ -211,7 +221,8 @@ export default function PdfMapper() {
     const reader = new FileReader();
     reader.onload = function () {
       const typedarray = new Uint8Array(this.result as ArrayBuffer);
-      const load = (opts: any) => getDocument(opts).promise;
+      const load = (opts: any) => (pdfjsRef.current as any)?.getDocument(opts).promise;
+      if (!load) { alert('PDF-Bibliothek noch nicht geladen. Bitte einen Moment warten.'); return; }
       load({ data: typedarray })
         .then((pdf: any) => { setFallbackUrl(null); setPdfDoc(pdf); })
         .catch((e:any) => {

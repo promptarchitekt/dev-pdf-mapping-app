@@ -10,7 +10,7 @@
     "postinstall": "node scripts/setup-pdfjs-worker.cjs"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "20.x"
   },
   "dependencies": {
     "next": "16.0.1",

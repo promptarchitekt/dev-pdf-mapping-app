@@ -35,6 +35,10 @@ export default function PdfMapper() {
   const [previewData, setPreviewData] = useState<Record<string, any>>({});
   const [showIds, setShowIds] = useState(true);
   const [showValues, setShowValues] = useState(true);
+  const [placingMode, setPlacingMode] = useState(true); // nur setzen, wenn aktiv
+  const [autoAdvance, setAutoAdvance] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
+  const [snap, setSnap] = useState(5); // px
 
   const current = fields[idx];
   const displayType = (f: any) => {
@@ -82,6 +86,16 @@ export default function PdfMapper() {
     if (!ol || !base) return;
     const octx = ol.getContext("2d")!;
     octx.clearRect(0,0,ol.width, ol.height);
+    // optional grid
+    if (showGrid) {
+      octx.save();
+      octx.globalAlpha = 0.15;
+      octx.strokeStyle = '#6b7280';
+      const step = 25;
+      for (let x=0; x<ol.width; x+=step) { octx.beginPath(); octx.moveTo(x,0); octx.lineTo(x,ol.height); octx.stroke(); }
+      for (let y=0; y<ol.height; y+=step) { octx.beginPath(); octx.moveTo(0,y); octx.lineTo(ol.width,y); octx.stroke(); }
+      octx.restore();
+    }
     // style
     octx.font = "12px ui-sans-serif, system-ui";
     octx.textBaseline = "top";
@@ -125,8 +139,11 @@ export default function PdfMapper() {
             const top = cy - (fontSize + 2);
             const height = fontSize + 6;
             octx.save();
-            octx.globalAlpha = 0.18;
-            octx.fillStyle = css.getPropertyValue('--color-action-secondary') || '#0ea5e933';
+            const isMoney = /betrag|wert|eur|€/i.test(String(t.id||''));
+            octx.globalAlpha = 0.20;
+            octx.fillStyle = isMoney
+              ? (css.getPropertyValue('--color-base-gold') || '#ffc300')
+              : (css.getPropertyValue('--color-action-secondary') || '#0ea5e933');
             octx.fillRect(cx, top, Math.round(t.w), height);
             octx.restore();
             const txt = sampleText(t);
@@ -238,11 +255,12 @@ export default function PdfMapper() {
   };
 
   const onCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!current || !page) return;
+    if (!current || !page || !placingMode) return;
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
     const base = overlayRef.current || (e.target as HTMLCanvasElement);
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round((base as HTMLCanvasElement).height - (e.clientY - rect.top));
+    let x = Math.round(e.clientX - rect.left);
+    let y = Math.round((base as HTMLCanvasElement).height - (e.clientY - rect.top));
+    if (snap && snap > 1) { x = Math.round(x / snap) * snap; y = Math.round(y / snap) * snap; }
 
     const copy = [...fields] as any[];
     const f = { ...(copy[idx] as any) };
@@ -253,7 +271,8 @@ export default function PdfMapper() {
         f.x_false = x; f.y_false = y; setAwaitingFalse(false); setIdx(Math.min(idx + 1, fields.length - 1));
       }
     } else {
-      f.x = x; f.y = y; setIdx(Math.min(idx + 1, fields.length - 1));
+      f.x = x; f.y = y;
+      if (autoAdvance) setIdx(Math.min(idx + 1, fields.length - 1));
     }
     copy[idx] = f as any;
     setFields(copy as any);
@@ -289,6 +308,24 @@ export default function PdfMapper() {
           <button className="px-2 py-1 border rounded" onClick={()=>{ document.body.classList.remove('theme-light','theme-graphite'); drawOverlay(); }}>Dark</button>
           <button className="px-2 py-1 border rounded" onClick={()=>{ document.body.classList.add('theme-light'); document.body.classList.remove('theme-graphite'); drawOverlay(); }}>Light</button>
           <button className="px-2 py-1 border rounded" onClick={()=>{ document.body.classList.add('theme-graphite'); document.body.classList.remove('theme-light'); drawOverlay(); }}>Graphit</button>
+        </div>
+
+        <div className="flex gap-2 text-sm">
+          <button className={`px-2 py-1 border rounded ${placingMode?'brightness-110':''}`} onClick={()=> setPlacingMode(true)}>Platzieren</button>
+          <button className="px-2 py-1 border rounded" onClick={()=> setPlacingMode(false)}>Bestätigen</button>
+          <button className="px-2 py-1 border rounded" onClick={()=> { setPlacingMode(false); drawOverlay(); }}>Abbrechen</button>
+        </div>
+        <div className="flex gap-2 text-xs">
+          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={autoAdvance} onChange={e=>setAutoAdvance(e.target.checked)} /> Auto‑Weiter</label>
+          <label className="inline-flex items-center gap-1"><input type="checkbox" checked={showGrid} onChange={e=>{ setShowGrid(e.target.checked); drawOverlay(); }} /> Raster</label>
+          <label className="inline-flex items-center gap-1">Snap
+            <select value={snap} onChange={e=>{ const v=parseInt(e.target.value); setSnap(v); }}>
+              <option value={1}>aus</option>
+              <option value={5}>5px</option>
+              <option value={10}>10px</option>
+              <option value={25}>25px</option>
+            </select>
+          </label>
         </div>
 
         <div>

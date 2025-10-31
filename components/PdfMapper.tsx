@@ -32,6 +32,9 @@ export default function PdfMapper() {
   const [mapping, setMapping] = useState<Mapping | null>(null);
   const [hoverXY, setHoverXY] = useState<{x:number;y:number}|null>(null);
   const [drag, setDrag] = useState<null | { kind: "text" | "bp_true" | "bp_false"; i: number }>(null);
+  const [previewData, setPreviewData] = useState<Record<string, any>>({});
+  const [showIds, setShowIds] = useState(true);
+  const [showValues, setShowValues] = useState(true);
 
   const current = fields[idx];
   const displayType = (f: any) => {
@@ -89,6 +92,8 @@ export default function PdfMapper() {
     const colFalse = css.getPropertyValue('--color-status-error').trim() || '#ef4444';
     const fontSize = (mapping?.size as number) || 12;
     const sampleText = (f: any): string => {
+      const v = (previewData as any)?.[f?.id];
+      if (v !== undefined && v !== null && String(v) !== '') return String(v);
       if (f?.type === 'date_de' || /datum/i.test(f?.id || '')) return '01.01.2025';
       if (f?.align === 'right' || /betrag|wert|summe|eur|€/i.test(f?.id || '')) return '1.234,56 €';
       if (/name|aussteller|ort/i.test(f?.id || '')) return 'Max Mustermann';
@@ -102,15 +107,13 @@ export default function PdfMapper() {
           const cx = Math.round(bp.x_true);
           const cy = Math.round(ol.height - bp.y_true);
           drawDot(octx, cx, cy, i === idx ? colActive : colTrue);
-          octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
-          octx.fillText(`${bp.id}: Ja`, cx + 8, cy + 6);
+          if (showIds) drawTag(octx, cx, cy, `${bp.id}: Ja`);
         }
         if (bp.x_false != null && bp.y_false != null) {
           const cx = Math.round(bp.x_false);
           const cy = Math.round(ol.height - bp.y_false);
           drawDot(octx, cx, cy, i === idx ? colActive : colFalse);
-          octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
-          octx.fillText(`${bp.id}: Nein`, cx + 8, cy + 6);
+          if (showIds) drawTag(octx, cx, cy, `${bp.id}: Nein`);
         }
       } else {
         const t = f as any;
@@ -157,6 +160,33 @@ export default function PdfMapper() {
     ctx.stroke();
     ctx.restore();
   };
+  const drawTag = (ctx: CanvasRenderingContext2D, x:number, y:number, text:string) => {
+    if (!text) return;
+    const css = getComputedStyle(document.body);
+    const bg = css.getPropertyValue('--color-action-tertiary') || 'rgba(255,255,255,0.08)';
+    const fg = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+    ctx.save();
+    ctx.font = "11px ui-sans-serif, system-ui";
+    const padX = 6;
+    const w = Math.ceil(ctx.measureText(text).width) + padX * 2;
+    const h = 18;
+    const rx = x + 10, ry = y + 6;
+    const r = 6;
+    ctx.beginPath();
+    ctx.moveTo(rx + r, ry);
+    ctx.arcTo(rx + w, ry, rx + w, ry + h, r);
+    ctx.arcTo(rx + w, ry + h, rx, ry + h, r);
+    ctx.arcTo(rx, ry + h, rx, ry, r);
+    ctx.arcTo(rx, ry, rx + w, ry, r);
+    ctx.closePath();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = bg as any;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = fg as any;
+    ctx.fillText(text, rx + padX, ry + 4);
+    ctx.restore();
+  };
 
   const onPdfFile = (file: File) => {
     const reader = new FileReader();
@@ -190,6 +220,20 @@ export default function PdfMapper() {
       }
     };
     reader.readAsText(file, "utf-8");
+  };
+
+  const onDemoFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        const data = JSON.parse(this.result as string) as Record<string, any>;
+        setPreviewData(data || {});
+        drawOverlay();
+      } catch {
+        alert('Demo-Daten (JSON) konnten nicht gelesen werden.');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
   };
 
   const onCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -254,6 +298,15 @@ export default function PdfMapper() {
         <div>
           <label className="block text-sm mb-1">Mapping laden (JSON)</label>
           <input type="file" accept="application/json" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) onMapFile(f); }} />
+        </div>
+
+        <div>
+          <label className="block text-sm mb-1">Demo‑Daten (optional, JSON)</label>
+          <input type="file" accept="application/json" onChange={(e)=>{ const f=e.target.files?.[0]; if (f) onDemoFile(f); }} />
+          <div className="mt-2 flex gap-2 text-xs">
+            <button className="px-2 py-1 border rounded" onClick={()=>{ setShowIds(s=>!s); drawOverlay(); }}>{showIds ? 'IDs ausblenden' : 'IDs einblenden'}</button>
+            <button className="px-2 py-1 border rounded" onClick={()=>{ setShowValues(s=>!s); drawOverlay(); }}>{showValues ? 'Werte ausblenden' : 'Werte einblenden'}</button>
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -361,3 +414,6 @@ export default function PdfMapper() {
     </div>
   );
 }
+
+
+

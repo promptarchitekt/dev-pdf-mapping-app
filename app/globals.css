@@ -33,3 +33,30 @@ input[type="range"] { accent-color: var(--color-action-primary); }
 /* main canvas area */
 .app-main { background: radial-gradient(900px 600px at 75% -10%, var(--color-base-cyan-soft), transparent 60%), var(--color-surface-body); }
 .pdf-frame { background: var(--color-surface-card); border: 1px solid var(--color-border-primary); box-shadow: var(--effect-shadow-card); }
+
+/* Ensure no white UI remnants */
+code { background: var(--color-action-tertiary); color: var(--color-text-primary); padding: 2px 6px; border-radius: 6px; }
+
+/* File input button styling across browsers */
+input[type="file"]::file-selector-button {
+  background: var(--color-action-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--effect-radius-sm);
+}
+input[type="file"]::-webkit-file-upload-button {
+  background: var(--color-action-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--effect-radius-sm);
+}
+
+/* Field list theming */
+.field-list { background: transparent; border-color: var(--color-border-primary); }
+.field-list button { background: transparent; color: var(--color-text-primary); border-color: var(--color-border-primary); }
+
+/* Scrollbar (webkit) */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: color-mix(in srgb, var(--color-action-secondary) 40%, transparent); }
+*::-webkit-scrollbar-thumb { background: var(--color-action-primary); border-radius: 10px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--color-action-primary-hover); }

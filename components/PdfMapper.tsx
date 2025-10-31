@@ -233,7 +233,7 @@ export default function PdfMapper() {
         </div>
 
         {/* Field list */}
-        <div className="max-h-64 overflow-auto border rounded">
+        <div className="field-list max-h-64 overflow-auto border rounded">
           {(fields || []).map((f, i) => {
             const placed = (f as any).type === "boolean_pair"
               ? (f as any).x_true != null && (f as any).y_true != null && (f as any).x_false != null && (f as any).y_false != null
@@ -242,7 +242,12 @@ export default function PdfMapper() {
               <button key={(f as any).id}
                 className={`w-full text-left px-2 py-1 text-sm border-b last:border-0 hover:brightness-110 ${i===idx? 'brightness-110' : ''}`}
                 onClick={()=>{ setIdx(i); setAwaitingFalse(false); }}>
-                <span className={`inline-block w-2 h-2 rounded-full mr-2 ${placed? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                <span
+                  className="inline-block w-2 h-2 rounded-full mr-2"
+                  style={{
+                    backgroundColor: placed ? 'var(--color-status-success)' : 'var(--color-border-primary)'
+                  }}
+                />
                 {(f as any).id}
               </button>
             );

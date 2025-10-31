@@ -34,6 +34,13 @@ export default function PdfMapper() {
   const [drag, setDrag] = useState<null | { kind: "text" | "bp_true" | "bp_false"; i: number }>(null);
 
   const current = fields[idx];
+  const displayType = (f: any) => {
+    const t = (f?.type || 'text') as string;
+    if (t === 'boolean_pair') return 'Ja/Nein';
+    if (t === 'date_de') return 'Datum';
+    if (t === 'checkbox') return 'Auswahlfeld';
+    return 'Text';
+  };
 
   useEffect(() => {
     if (!pdfDoc) return;
@@ -80,6 +87,13 @@ export default function PdfMapper() {
     const colPlaced = css.getPropertyValue('--color-status-info').trim() || '#2563eb';
     const colTrue = css.getPropertyValue('--color-status-success').trim() || '#16a34a';
     const colFalse = css.getPropertyValue('--color-status-error').trim() || '#ef4444';
+    const fontSize = (mapping?.size as number) || 12;
+    const sampleText = (f: any): string => {
+      if (f?.type === 'date_de' || /datum/i.test(f?.id || '')) return '01.01.2025';
+      if (f?.align === 'right' || /betrag|wert|summe|eur|€/i.test(f?.id || '')) return '1.234,56 €';
+      if (/name|aussteller|ort/i.test(f?.id || '')) return 'Max Mustermann';
+      return 'Beispiel Text';
+    };
     // draw each placed marker
     fields.forEach((f, i) => {
       if ((f as any).type === "boolean_pair") {
@@ -88,15 +102,15 @@ export default function PdfMapper() {
           const cx = Math.round(bp.x_true);
           const cy = Math.round(ol.height - bp.y_true);
           drawDot(octx, cx, cy, i === idx ? colActive : colTrue);
-          octx.fillStyle = "#0f172a";
-          octx.fillText(`${bp.id}:T`, cx + 6, cy + 6);
+          octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+          octx.fillText(`${bp.id}: Ja`, cx + 8, cy + 6);
         }
         if (bp.x_false != null && bp.y_false != null) {
           const cx = Math.round(bp.x_false);
           const cy = Math.round(ol.height - bp.y_false);
           drawDot(octx, cx, cy, i === idx ? colActive : colFalse);
-          octx.fillStyle = "#0f172a";
-          octx.fillText(`${bp.id}:F`, cx + 6, cy + 6);
+          octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+          octx.fillText(`${bp.id}: Nein`, cx + 8, cy + 6);
         }
       } else {
         const t = f as any;
@@ -104,8 +118,30 @@ export default function PdfMapper() {
           const cx = Math.round(t.x);
           const cy = Math.round(ol.height - t.y);
           drawDot(octx, cx, cy, i === idx ? colActive : colPlaced);
-          octx.fillStyle = "#0f172a";
-          octx.fillText(`${t.id}`, cx + 6, cy + 6);
+          octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+          if (t.w) {
+            const top = cy - (fontSize + 2);
+            const height = fontSize + 6;
+            octx.save();
+            octx.globalAlpha = 0.18;
+            octx.fillStyle = css.getPropertyValue('--color-action-secondary') || '#0ea5e933';
+            octx.fillRect(cx, top, Math.round(t.w), height);
+            octx.restore();
+            const txt = sampleText(t);
+            octx.save();
+            octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+            octx.font = `${fontSize}px ui-sans-serif, system-ui`;
+            if (t.align === 'right') {
+              octx.textAlign = 'right';
+              octx.fillText(txt, cx + Math.round(t.w) - 2, cy - fontSize);
+            } else {
+              octx.textAlign = 'left';
+              octx.fillText(txt, cx + 2, cy - fontSize);
+            }
+            octx.restore();
+          } else {
+            octx.fillText(`${t.id}: ${sampleText(t)}`, cx + 8, cy + 6);
+          }
         }
       }
     });
@@ -226,10 +262,10 @@ export default function PdfMapper() {
         </div>
 
         <div className="text-sm">
-          <div>Aktuelles Feld: <span className="font-medium">{current?.id ?? "–"}</span>
-            <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded border">{(current as any)?.type ?? "text"}</span>
+          <div>Feld: <span className="font-medium">{current?.id ?? "–"}</span>
+            <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded border">{displayType(current)}</span>
           </div>
-          <p className="text-slate-600 mt-1">Klick auf die Zielposition im PDF. Bei <code>boolean_pair</code> zuerst Ja/True, dann Nein/False.</p>
+          <p className="text-slate-600 mt-1">Klicken Sie ins PDF, um die Position zu setzen. Bei Ja/Nein‑Feldern: erst „Ja“, dann „Nein“. Marker lassen sich per Ziehen feinjustieren.</p>
         </div>
 
         {/* Field list */}
@@ -254,7 +290,7 @@ export default function PdfMapper() {
           })}
         </div>
 
-        <button className="px-3 py-1.5 border rounded" onClick={saveMapping}>Mapping speichern</button>
+        <button className="px-3 py-1.5 border rounded" onClick={saveMapping}>Speichern</button>
 
         <div>
           <label className="block text-sm mb-1">Zoom</label>

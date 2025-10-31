@@ -36,6 +36,7 @@ export default function PdfMapper() {
   const [autoAdvance, setAutoAdvance] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [snap, setSnap] = useState(5); // px
+  const [resizeW, setResizeW] = useState<null | { i:number }>(null);
 
   const current = fields[idx];
   const displayType = (f: any) => {
@@ -114,7 +115,7 @@ export default function PdfMapper() {
     const colPlaced = css.getPropertyValue('--color-status-info').trim() || '#2563eb';
     const colTrue = css.getPropertyValue('--color-status-success').trim() || '#16a34a';
     const colFalse = css.getPropertyValue('--color-status-error').trim() || '#ef4444';
-    const fontSize = (mapping?.size as number) || 12;
+    const fontSizeGlobal = (mapping?.size as number) || 12;
     const sampleText = (f: any): string => {
       const v = (previewData as any)?.[f?.id];
       if (v !== undefined && v !== null && String(v) !== '') return String(v);
@@ -145,6 +146,7 @@ export default function PdfMapper() {
           const cx = Math.round(t.x);
           const cy = Math.round(ol.height - t.y);
           drawDot(octx, cx, cy, i === idx ? colActive : colPlaced);
+          const fontSize = (t.size ?? fontSizeGlobal) as number;
           if (t.w) {
             const top = cy - (fontSize + 2);
             const height = fontSize + 6;
@@ -171,6 +173,15 @@ export default function PdfMapper() {
             octx.restore();
             // Always show field name label
             drawTag(octx, cx, cy, `${t.id}`);
+            // resize handle for width
+            const hx = cx + Math.round(t.w);
+            const hy = cy - Math.round(fontSize/2);
+            octx.save();
+            octx.fillStyle = (css.getPropertyValue('--color-base-gold') || '#ffc300') as any;
+            octx.strokeStyle = '#1f2937';
+            const hs = Math.max(8, Math.round(8*scale));
+            octx.fillRect(hx-2, hy-hs/2, 4, hs);
+            octx.restore();
           } else {
             drawTag(octx, cx, cy, `${t.id}: ${sampleText(t)}`);
           }
@@ -436,15 +447,34 @@ export default function PdfMapper() {
                   } else if (cur.x != null && cur.y != null) {
                     const cx = cur.x, cy = h - cur.y;
                     if (Math.hypot(px-cx, py-cy) <= radius) { setDrag({kind:'text', i: idx}); return; }
+                    // hit test width handle if exists
+                    if (cur.w) {
+                      const hx = cx + Math.round(cur.w);
+                      const hy = h - (cur.y + Math.round((cur.size ?? mapping?.size ?? 12)/2));
+                      if (Math.abs(px - hx) <= 6 && Math.abs(py - hy) <= Math.max(10, Math.round(10*scale))) {
+                        setResizeW({ i: idx });
+                        return;
+                      }
+                    }
                   }
                 }}
-                onMouseUp={()=> setDrag(null)}
+                onMouseUp={()=> { setDrag(null); setResizeW(null); }}
                 onMouseMove={(e)=>{
                   const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
                   const x = Math.round(e.clientX - rect.left);
                   const yCanvas = Math.round((e.target as HTMLCanvasElement).height - (e.clientY - rect.top));
                   setHoverXY({x, y: yCanvas});
-                  if (drag) {
+                  if (resizeW) {
+                    const copy = [...fields] as any[];
+                    const f = { ...(copy[resizeW.i] as any) };
+                    const baseX = f.x ?? 0;
+                    let newW = x - baseX;
+                    if (snap && snap>1) newW = Math.max(10, Math.round(newW/snap)*snap);
+                    f.w = Math.max(10, newW);
+                    copy[resizeW.i] = f;
+                    setFields(copy as any);
+                    drawOverlay();
+                  } else if (drag) {
                     const copy = [...fields] as any[];
                     const f = { ...(copy[drag.i] as any) };
                     if (drag.kind === 'text') { f.x = x; f.y = yCanvas; }
@@ -459,6 +489,67 @@ export default function PdfMapper() {
               />
             </>
           )}
+        </div>
+        {/* Right tool rail */}
+        <div className="side-rail">
+          <div className="p-3 space-y-3">
+            <div className="flex gap-2 text-sm">
+              <button className={`px-2 py-1 border rounded ${placingMode?'brightness-110':''}`} onClick={()=> setPlacingMode(true)}>Platzieren</button>
+              <button className="px-2 py-1 border rounded" onClick={()=> setPlacingMode(false)}>Bestätigen</button>
+              <button className="px-2 py-1 border rounded" onClick={()=> { setPlacingMode(false); }}>Abbrechen</button>
+            </div>
+            <div className="flex gap-2 text-xs">
+              <label className="inline-flex items-center gap-1"><input type="checkbox" checked={autoAdvance} onChange={e=>setAutoAdvance(e.target.checked)} /> Auto‑Weiter</label>
+              <label className="inline-flex items-center gap-1"><input type="checkbox" checked={showGrid} onChange={e=>{ setShowGrid(e.target.checked); drawOverlay(); }} /> Raster</label>
+              <label className="inline-flex items-center gap-1">Snap
+                <select value={snap} onChange={e=>{ const v=parseInt(e.target.value); setSnap(v); }}>
+                  <option value={1}>aus</option>
+                  <option value={5}>5px</option>
+                  <option value={10}>10px</option>
+                  <option value={25}>25px</option>
+                </select>
+              </label>
+            </div>
+            <div className="text-sm">
+              <div>Feld: <span className="font-medium">{current?.id ?? "–"}</span>
+                <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded border">{displayType(current)}</span>
+              </div>
+            </div>
+            {/* Inspector */}
+            <div className="text-xs grid grid-cols-2 gap-2">
+              {current && (current as any).type !== 'boolean_pair' ? (
+                <>
+                  <label className="col-span-1">X<input className="w-full" type="number" value={(current as any).x ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), x:v}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-1">Y<input className="w-full" type="number" value={(current as any).y ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), y:v}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-1">W<input className="w-full" type="number" value={(current as any).w ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), w:Math.max(0,v)}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-1">Size<input className="w-full" type="number" value={(current as any).size ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), size:Math.max(6,v)}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-2">Align
+                    <select className="w-full" value={(current as any).align ?? 'left'} onChange={e=>{ const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), align:e.target.value}; setFields(copy as any); drawOverlay(); }}>
+                      <option value="left">Links</option>
+                      <option value="right">Rechts</option>
+                    </select>
+                  </label>
+                </>
+              ) : current ? (
+                <>
+                  <label className="col-span-1">Ja X<input className="w-full" type="number" value={(current as any).x_true ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), x_true:v}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-1">Ja Y<input className="w-full" type="number" value={(current as any).y_true ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), y_true:v}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-1">Nein X<input className="w-full" type="number" value={(current as any).x_false ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), x_false:v}; setFields(copy as any); drawOverlay(); }} /></label>
+                  <label className="col-span-1">Nein Y<input className="w-full" type="number" value={(current as any).y_false ?? ''} onChange={e=>{ const v=Number(e.target.value||0); const copy=[...fields] as any[]; copy[idx] = {...(copy[idx] as any), y_false:v}; setFields(copy as any); drawOverlay(); }} /></label>
+                </>
+              ) : null}
+            </div>
+            <div className="flex gap-2">
+              <button className="px-2 py-1 border rounded" onClick={()=>{ setIdx(Math.max(0, idx-1)); setAwaitingFalse(false); }}>◀ Zurück</button>
+              <button className="px-2 py-1 border rounded" onClick={()=>{ setIdx(Math.min(fields.length-1, idx+1)); setAwaitingFalse(false); }}>Weiter ▶</button>
+            </div>
+            <button className="px-3 py-1.5 border rounded w-full" onClick={saveMapping}>Speichern</button>
+            <div>
+              <label className="block text-sm mb-1">Zoom</label>
+              <input type="range" min={0.5} max={2.5} defaultValue={scale} step={0.1} onChange={(e)=>zoomChanged(parseFloat(e.target.value))} />
+            </div>
+            <div className="text-sm">Koordinate: <code>{hoverXY ? `x=${hoverXY.x}, y=${hoverXY.y}` : '-'}</code></div>
+          </div>
         </div>
       </main>
     </div>

@@ -37,6 +37,8 @@ export default function PdfMapper() {
   const [showGrid, setShowGrid] = useState(true);
   const [snap, setSnap] = useState(5); // px
   const [resizeW, setResizeW] = useState<null | { i:number }>(null);
+  const [overflowInfo, setOverflowInfo] = useState<null | { id:string; width:number; w:number }>(null);
+  const [pdfBuffer, setPdfBuffer] = useState<ArrayBuffer | null>(null);
 
   const current = fields[idx];
   const displayType = (f: any) => {
@@ -115,7 +117,8 @@ export default function PdfMapper() {
     const colPlaced = css.getPropertyValue('--color-status-info').trim() || '#2563eb';
     const colTrue = css.getPropertyValue('--color-status-success').trim() || '#16a34a';
     const colFalse = css.getPropertyValue('--color-status-error').trim() || '#ef4444';
-    const fontSizeGlobal = (mapping?.size as number) || 12;
+    // Align preview default with stamping default (10pt)
+    const fontSizeGlobal = (mapping?.size as number) || 10;
     const sampleText = (f: any): string => {
       const v = (previewData as any)?.[f?.id];
       if (v !== undefined && v !== null && String(v) !== '') return String(v);
@@ -147,35 +150,46 @@ export default function PdfMapper() {
           const cy = Math.round(ol.height - t.y);
           drawDot(octx, cx, cy, i === idx ? colActive : colPlaced);
           const fontSize = (t.size ?? fontSizeGlobal) as number;
+          const scaledFont = Math.max(8, Math.round(fontSize * scale));
           if (t.w) {
-            const top = cy - (fontSize + 2);
-            const height = fontSize + 6;
+            const scaledW = Math.max(0, Math.round((t.w as number) * scale));
+            const top = cy - (scaledFont + 2);
+            const height = scaledFont + Math.round(6 * scale);
             octx.save();
             const isMoney = /betrag|wert|eur|€/i.test(String(t.id||''));
             octx.globalAlpha = 0.20;
             octx.fillStyle = isMoney
               ? (css.getPropertyValue('--color-base-gold') || '#ffc300')
               : (css.getPropertyValue('--color-action-secondary') || '#0ea5e933');
-            octx.fillRect(cx, top, Math.round(t.w), height);
+            octx.fillRect(cx, top, scaledW, height);
             octx.restore();
             const txt = sampleText(t);
             octx.save();
             // Dark text so it is visible on white PDF background
             octx.fillStyle = css.getPropertyValue('--color-base-ink') || '#111111';
-            octx.font = `${fontSize}px ui-sans-serif, system-ui`;
+            octx.font = `${scaledFont}px ui-sans-serif, system-ui`;
+            // overflow check
+            const metrics = octx.measureText(txt);
+            const tWidth = metrics.width; // pixels on canvas
+            const effW = scaledW; // compare in canvas pixels
+            if (tWidth > effW) {
+              setOverflowInfo({ id: String(t.id), width: Math.round(tWidth), w: effW });
+            } else if (overflowInfo && overflowInfo.id === String(t.id)) {
+              setOverflowInfo(null);
+            }
             if (t.align === 'right') {
               octx.textAlign = 'right';
-              octx.fillText(txt, cx + Math.round(t.w) - 2, cy - fontSize);
+              octx.fillText(txt, cx + scaledW - 2, cy - scaledFont);
             } else {
               octx.textAlign = 'left';
-              octx.fillText(txt, cx + 2, cy - fontSize);
+              octx.fillText(txt, cx + 2, cy - scaledFont);
             }
             octx.restore();
             // Always show field name label
             drawTag(octx, cx, cy, `${t.id}`);
             // resize handle for width
-            const hx = cx + Math.round(t.w);
-            const hy = cy - Math.round(fontSize/2);
+            const hx = cx + scaledW;
+            const hy = cy - Math.round(scaledFont/2);
             octx.save();
             octx.fillStyle = (css.getPropertyValue('--color-base-gold') || '#ffc300') as any;
             octx.strokeStyle = '#1f2937';
@@ -189,6 +203,37 @@ export default function PdfMapper() {
       }
     });
   };
+
+  // Keyboard nudging: arrows move current field, Shift = 5pt
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!current) return;
+      const step = e.shiftKey ? 5 : 1;
+      const copy = [...fields] as any[];
+      const f = { ...(copy[idx] as any) };
+      let changed = false;
+      if ((f as any).type === 'boolean_pair') {
+        // Move both Ja/Nein for arrows
+        if (e.key === 'ArrowLeft') { if (f.x_true!=null) f.x_true-=step; if (f.x_false!=null) f.x_false-=step; changed=true; }
+        if (e.key === 'ArrowRight') { if (f.x_true!=null) f.x_true+=step; if (f.x_false!=null) f.x_false+=step; changed=true; }
+        if (e.key === 'ArrowUp') { if (f.y_true!=null) f.y_true+=step; if (f.y_false!=null) f.y_false+=step; changed=true; }
+        if (e.key === 'ArrowDown') { if (f.y_true!=null) f.y_true-=step; if (f.y_false!=null) f.y_false-=step; changed=true; }
+      } else {
+        if (e.key === 'ArrowLeft') { if (f.x!=null) f.x-=step; changed=true; }
+        if (e.key === 'ArrowRight') { if (f.x!=null) f.x+=step; changed=true; }
+        if (e.key === 'ArrowUp') { if (f.y!=null) f.y+=step; changed=true; }
+        if (e.key === 'ArrowDown') { if (f.y!=null) f.y-=step; changed=true; }
+      }
+      if (changed) {
+        e.preventDefault();
+        copy[idx] = f;
+        setFields(copy as any);
+        drawOverlay();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fields, idx, current]);
 
   const drawDot = (ctx: CanvasRenderingContext2D, x:number, y:number, color:string) => {
     ctx.save();
@@ -232,6 +277,7 @@ export default function PdfMapper() {
     const reader = new FileReader();
     reader.onload = function () {
       const typedarray = new Uint8Array(this.result as ArrayBuffer);
+      setPdfBuffer(this.result as ArrayBuffer);
       const load = (opts: any) => (pdfjsRef.current as any)?.getDocument(opts).promise;
       if (!load) { alert('PDF-Bibliothek noch nicht geladen. Bitte einen Moment warten.'); return; }
       load({ data: typedarray })
@@ -243,6 +289,55 @@ export default function PdfMapper() {
         });
     };
     reader.readAsArrayBuffer(file);
+  };
+
+  // Client-side Test-PDF Rendering using pdf-lib and current previewData
+  const renderTestPdf = async () => {
+    if (!pdfBuffer) { alert('Bitte zuerst ein PDF laden.'); return; }
+    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+    const doc = await PDFDocument.load(pdfBuffer);
+    const helv = await doc.embedFont(StandardFonts.Helvetica);
+    const page = doc.getPage(0);
+    const mapFontSize = (mapping?.size as number) || 10;
+    const drawText = (text:string, x:number, y:number, size:number, align: 'left'|'right') => {
+      const w = helv.widthOfTextAtSize(text, size);
+      const dx = align === 'right' ? x + (0) - 2 : x + 2;
+      const tx = align === 'right' ? x - 2 : x + 2;
+      page.drawText(text, { x: align==='right' ? x - w - 2 : x + 2, y: y - size, size, font: helv, color: rgb(0,0,0) });
+    };
+    const values = previewData || {};
+    for (const f of fields as any[]) {
+      const t = (f.type || 'text') as string;
+      if (t === 'boolean_pair') {
+        const val = String(values[f.id] ?? '').toLowerCase();
+        const truthy = val === 'true' || val === '1' || val === 'ja';
+        if (truthy && f.x_true != null && f.y_true != null) page.drawText('X', { x: f.x_true, y: f.y_true, size: mapFontSize, font: helv, color: rgb(0,0,0) });
+        if (!truthy && f.x_false != null && f.y_false != null) page.drawText('X', { x: f.x_false, y: f.y_false, size: mapFontSize, font: helv, color: rgb(0,0,0) });
+        continue;
+      }
+      if (f.x == null || f.y == null) continue;
+      let text = String(values[f.id] ?? '');
+      if (t === 'date_de' && text) {
+        // einfache Normalisierung
+        const m = text.match(/(\d{1,2})[\.\/-](\d{1,2})[\.\/-](\d{2,4})/);
+        if (m) text = `${m[1].padStart(2,'0')}.${m[2].padStart(2,'0')}.${m[3].length===2?('20'+m[3]):m[3]}`;
+      }
+      const size = (f.size ?? mapFontSize) as number;
+      const align = (f.align === 'right') ? 'right' : 'left';
+      if (align==='right' && f.w) {
+        const w = helv.widthOfTextAtSize(text, size);
+        const x = f.x + Math.max(0, (f.w as number) - w);
+        page.drawText(text, { x, y: f.y - size, size, font: helv, color: rgb(0,0,0) });
+      } else {
+        page.drawText(text, { x: f.x + 2, y: f.y - size, size, font: helv, color: rgb(0,0,0) });
+      }
+    }
+    const bytes = await doc.save();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'out_test.pdf';
+    a.click();
   };
 
   const onMapFile = (file: File) => {
@@ -278,7 +373,8 @@ export default function PdfMapper() {
   };
 
   const onCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!current || !page || !placingMode) return;
+    // Vereinfachung: Klick setzt immer, damit Felder jederzeit platzier- und verschiebbar sind
+    if (!current || !page) return;
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
     const base = overlayRef.current || (e.target as HTMLCanvasElement);
     let x = Math.round(e.clientX - rect.left);
@@ -336,7 +432,7 @@ export default function PdfMapper() {
         <div className="flex gap-2 text-sm">
           <button className={`px-2 py-1 border rounded ${placingMode?'brightness-110':''}`} onClick={()=> setPlacingMode(true)}>Platzieren</button>
           <button className="px-2 py-1 border rounded" onClick={()=> setPlacingMode(false)}>Bestätigen</button>
-          <button className="px-2 py-1 border rounded" onClick={()=> { setPlacingMode(false); drawOverlay(); }}>Abbrechen</button>
+          <button className="px-2 py-1 border rounded" onClick={()=> { setPlacingMode(false); }}>Abbrechen</button>
         </div>
         <div className="flex gap-2 text-xs">
           <label className="inline-flex items-center gap-1"><input type="checkbox" checked={autoAdvance} onChange={e=>setAutoAdvance(e.target.checked)} /> Auto‑Weiter</label>
@@ -368,6 +464,25 @@ export default function PdfMapper() {
             <button className="px-2 py-1 border rounded" onClick={()=>{ setShowIds(s=>!s); drawOverlay(); }}>{showIds ? 'IDs ausblenden' : 'IDs einblenden'}</button>
             <button className="px-2 py-1 border rounded" onClick={()=>{ setShowValues(s=>!s); drawOverlay(); }}>{showValues ? 'Werte ausblenden' : 'Werte einblenden'}</button>
           </div>
+          {/* Field list moved to right rail */}
+          <div className="field-list max-h-64 overflow-auto border rounded mt-3">
+            {(fields || []).map((f, i) => {
+              const placed = (f as any).type === 'boolean_pair'
+                ? (f as any).x_true != null && (f as any).y_true != null && (f as any).x_false != null && (f as any).y_false != null
+                : (f as any).x != null && (f as any).y != null;
+              return (
+                <button key={(f as any).id}
+                  className={`w-full text-left px-2 py-1 text-sm border-b last:border-0 hover:brightness-110 ${i===idx? 'brightness-110' : ''}`}
+                  onClick={()=>{ setIdx(i); setAwaitingFalse(false); }}>
+                  <span
+                    className="inline-block w-2 h-2 rounded-full mr-2"
+                    style={{ backgroundColor: placed ? 'var(--color-status-success)' : 'var(--color-border-primary)' }}
+                  />
+                  {(f as any).id}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex gap-2">
@@ -380,28 +495,6 @@ export default function PdfMapper() {
             <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded border">{displayType(current)}</span>
           </div>
           <p className="text-slate-600 mt-1">Klicken Sie ins PDF, um die Position zu setzen. Bei Ja/Nein‑Feldern: erst „Ja“, dann „Nein“. Marker lassen sich per Ziehen feinjustieren.</p>
-        </div>
-
-        {/* Field list */}
-        <div className="field-list max-h-64 overflow-auto border rounded">
-          {(fields || []).map((f, i) => {
-            const placed = (f as any).type === "boolean_pair"
-              ? (f as any).x_true != null && (f as any).y_true != null && (f as any).x_false != null && (f as any).y_false != null
-              : (f as any).x != null && (f as any).y != null;
-            return (
-              <button key={(f as any).id}
-                className={`w-full text-left px-2 py-1 text-sm border-b last:border-0 hover:brightness-110 ${i===idx? 'brightness-110' : ''}`}
-                onClick={()=>{ setIdx(i); setAwaitingFalse(false); }}>
-                <span
-                  className="inline-block w-2 h-2 rounded-full mr-2"
-                  style={{
-                    backgroundColor: placed ? 'var(--color-status-success)' : 'var(--color-border-primary)'
-                  }}
-                />
-                {(f as any).id}
-              </button>
-            );
-          })}
         </div>
 
         <button className="px-3 py-1.5 border rounded" onClick={saveMapping}>Speichern</button>
@@ -514,6 +607,13 @@ export default function PdfMapper() {
               <div>Feld: <span className="font-medium">{current?.id ?? "–"}</span>
                 <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded border">{displayType(current)}</span>
               </div>
+              {overflowInfo && current && String(current.id) === overflowInfo.id ? (
+                <div className="mt-1 text-xs" style={{color: 'var(--color-base-gold)'}}>
+                  Hinweis: Textbreite {overflowInfo.width}
+                  {'>'}
+                  Feldbreite {overflowInfo.w} (pt). W erhöhen oder Size verringern.
+                </div>
+              ) : null}
             </div>
             {/* Inspector */}
             <div className="text-xs grid grid-cols-2 gap-2">
@@ -544,6 +644,7 @@ export default function PdfMapper() {
               <button className="px-2 py-1 border rounded" onClick={()=>{ setIdx(Math.min(fields.length-1, idx+1)); setAwaitingFalse(false); }}>Weiter ▶</button>
             </div>
             <button className="px-3 py-1.5 border rounded w-full" onClick={saveMapping}>Speichern</button>
+            <button className="px-3 py-1.5 border rounded w-full" onClick={renderTestPdf} title="Erzeugt ein Test-PDF mit den Demo-Daten">Test‑PDF erstellen</button>
             <div>
               <label className="block text-sm mb-1">Zoom</label>
               <input type="range" min={0.5} max={2.5} defaultValue={scale} step={0.1} onChange={(e)=>zoomChanged(parseFloat(e.target.value))} />

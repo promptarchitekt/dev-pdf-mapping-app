@@ -1,5 +1,5 @@
 @echo off
-setlocal ENABLEDELAYEDEXPANSION
+setlocal ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
 rem Start script for PDF-Mapping-App (Windows CMD)
 cd /d "%~dp0"
 
@@ -18,7 +18,16 @@ for /f "usebackq delims=" %%P in (`powershell -NoLogo -NoProfile -Command "
   Get-FreePort 3007 3099
 "`) do set PORT=%%P
 
-echo [dev] Starting Next.js on http://localhost:%PORT%
-start "" http://localhost:%PORT%/
+set URL=http://localhost:%PORT%/
+echo [dev] Starting Next.js on %URL%
 set PORT=%PORT%
+
+rem Try to open browser (multi-fallback)
+start "" %URL% >NUL 2>&1
+if errorlevel 1 powershell -NoLogo -NoProfile -Command "Start-Process '%URL%'" >NUL 2>&1
+if errorlevel 1 mshta vbscript:Execute("CreateObject(""WScript.Shell"").Run(""%URL%"",1):close")
+
 call npm run dev
+echo.
+echo [info] Dev server exited. Press any key to close.
+pause >NUL

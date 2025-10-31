@@ -32,3 +32,5 @@ $env:PORT = $port
 Write-Host "[dev] Starting Next.js on http://localhost:$port" -ForegroundColor Green
 Start-Process "http://localhost:$port"
 npm run dev | Out-Host
+Write-Host "`n[info] Dev server exited. Press Enter to close." -ForegroundColor Yellow
+Read-Host > $null

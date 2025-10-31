@@ -34,6 +34,27 @@ input[type="range"] { accent-color: var(--color-action-primary); }
 .app-main { background: radial-gradient(900px 600px at 75% -10%, var(--color-base-cyan-soft), transparent 60%), var(--color-surface-body); }
 .pdf-frame { background: var(--color-surface-card); border: 1px solid var(--color-border-primary); box-shadow: var(--effect-shadow-card); }
 .side-rail { position: absolute; right: 12px; top: 12px; bottom: 12px; width: 300px; overflow: auto; background: var(--color-surface-card); border: 1px solid var(--color-border-primary); box-shadow: var(--effect-shadow-card); border-radius: var(--effect-radius-md); }
+/* Side rail controls: ensure no white-on-white */
+.side-rail, .side-rail * { color: var(--color-text-primary); }
+.side-rail input[type="text"],
+.side-rail input[type="number"],
+.side-rail select {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-primary);
+  border-radius: var(--effect-radius-sm);
+  padding: 6px 8px;
+}
+.side-rail select option { background: var(--color-surface-elevated); color: var(--color-text-primary); }
+.side-rail input::placeholder { color: var(--color-text-muted); }
+.side-rail button {
+  background: var(--color-action-tertiary);
+  border: 1px solid var(--color-border-primary);
+  color: var(--color-text-primary);
+  border-radius: var(--effect-radius-sm);
+}
+.side-rail button:hover { border-color: var(--color-action-primary); box-shadow: var(--effect-shadow-border); }
+.side-rail input[type="range"] { accent-color: var(--color-action-primary); }
 
 /* Ensure no white UI remnants */
 code { background: var(--color-action-tertiary); color: var(--color-text-primary); padding: 2px 6px; border-radius: 6px; }

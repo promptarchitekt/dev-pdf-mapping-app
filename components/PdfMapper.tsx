@@ -259,10 +259,10 @@ export default function PdfMapper() {
         <div className="text-sm">Koordinate: <code>{hoverXY ? `x=${hoverXY.x}, y=${hoverXY.y}` : '-'}</code></div>
       </aside>
 
-      <main className="grid place-items-center bg-slate-100">
-        <div className="bg-white shadow-xl relative">
+      <main className="app-main grid place-items-center">
+        <div className="pdf-frame relative">
           {fallbackUrl ? (
-            <embed src={`${fallbackUrl}#zoom=page-width`} type="application/pdf" className="w-[900px] h-[1200px] border" />
+            <embed src={`${fallbackUrl}#zoom=page-width`} type="application/pdf" className="w-[900px] h-[1200px]" />
           ) : (
             <>
               <canvas ref={canvasRef} className="block" />

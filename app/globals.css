@@ -13,7 +13,23 @@ body {
 
 /* basic theming for layout */
 aside { background: var(--color-surface-card); border-color: var(--color-border-primary); }
-.badge { background: var(--color-action-tertiary); border-color: var(--color-border-primary); }
-button { background: var(--color-action-tertiary); border-color: var(--color-border-primary); color: var(--color-text-primary); }
+.badge { background: var(--color-action-tertiary); border-color: var(--color-border-primary); color: var(--color-text-primary); }
+button { background: var(--color-action-tertiary); border: 1px solid var(--color-border-primary); color: var(--color-text-primary); border-radius: var(--effect-radius-sm); }
 button:hover { border-color: var(--color-action-primary); box-shadow: var(--effect-shadow-border); }
-input[type="file"], input[type="range"] { color: var(--color-text-primary); }
+
+/* inputs */
+input[type="file"], input[type="range"], input[type="text"], select {
+  color: var(--color-text-primary);
+  background: var(--color-action-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--effect-radius-sm);
+}
+input[type="range"] { accent-color: var(--color-action-primary); }
+
+/* helper tones */
+.text-slate-600 { color: var(--color-text-secondary) !important; }
+.hover\:bg-slate-50:hover { background: color-mix(in srgb, var(--color-action-secondary) 45%, transparent) !important; }
+
+/* main canvas area */
+.app-main { background: radial-gradient(900px 600px at 75% -10%, var(--color-base-cyan-soft), transparent 60%), var(--color-surface-body); }
+.pdf-frame { background: var(--color-surface-card); border: 1px solid var(--color-border-primary); box-shadow: var(--effect-shadow-card); }

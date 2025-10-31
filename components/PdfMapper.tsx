@@ -485,26 +485,7 @@ export default function PdfMapper() {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button className="px-2 py-1 border rounded" onClick={()=>{ setIdx(Math.max(0, idx-1)); setAwaitingFalse(false); }}>◀ Zurück</button>
-          <button className="px-2 py-1 border rounded" onClick={()=>{ setIdx(Math.min(fields.length-1, idx+1)); setAwaitingFalse(false); }}>Weiter ▶</button>
-        </div>
-
-        <div className="text-sm">
-          <div>Feld: <span className="font-medium">{current?.id ?? "–"}</span>
-            <span className="ml-2 inline-block text-xs px-2 py-0.5 rounded border">{displayType(current)}</span>
-          </div>
-          <p className="text-slate-600 mt-1">Klicken Sie ins PDF, um die Position zu setzen. Bei Ja/Nein‑Feldern: erst „Ja“, dann „Nein“. Marker lassen sich per Ziehen feinjustieren.</p>
-        </div>
-
-        <button className="px-3 py-1.5 border rounded" onClick={saveMapping}>Speichern</button>
-
-        <div>
-          <label className="block text-sm mb-1">Zoom</label>
-          <input type="range" min={0.5} max={2.5} defaultValue={scale} step={0.1} onChange={(e)=>zoomChanged(parseFloat(e.target.value))} />
-        </div>
-
-        <div className="text-sm">Koordinate: <code>{hoverXY ? `x=${hoverXY.x}, y=${hoverXY.y}` : '-'}</code></div>
+        {/* Duplikate entfernt: Navigation, Feldinfo, Speichern, Zoom, Koordinate sind nur rechts sichtbar. */}
       </aside>
 
       <main className="app-main grid place-items-center">

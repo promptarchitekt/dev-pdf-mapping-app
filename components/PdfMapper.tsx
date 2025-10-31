@@ -75,6 +75,11 @@ export default function PdfMapper() {
     // style
     octx.font = "12px ui-sans-serif, system-ui";
     octx.textBaseline = "top";
+    const css = getComputedStyle(document.body);
+    const colActive = css.getPropertyValue('--color-action-primary').trim() || '#0ea5e9';
+    const colPlaced = css.getPropertyValue('--color-status-info').trim() || '#2563eb';
+    const colTrue = css.getPropertyValue('--color-status-success').trim() || '#16a34a';
+    const colFalse = css.getPropertyValue('--color-status-error').trim() || '#ef4444';
     // draw each placed marker
     fields.forEach((f, i) => {
       if ((f as any).type === "boolean_pair") {
@@ -82,14 +87,14 @@ export default function PdfMapper() {
         if (bp.x_true != null && bp.y_true != null) {
           const cx = Math.round(bp.x_true);
           const cy = Math.round(ol.height - bp.y_true);
-          drawDot(octx, cx, cy, i === idx ? "#0ea5e9" : "#16a34a");
+          drawDot(octx, cx, cy, i === idx ? colActive : colTrue);
           octx.fillStyle = "#0f172a";
           octx.fillText(`${bp.id}:T`, cx + 6, cy + 6);
         }
         if (bp.x_false != null && bp.y_false != null) {
           const cx = Math.round(bp.x_false);
           const cy = Math.round(ol.height - bp.y_false);
-          drawDot(octx, cx, cy, i === idx ? "#0ea5e9" : "#ef4444");
+          drawDot(octx, cx, cy, i === idx ? colActive : colFalse);
           octx.fillStyle = "#0f172a";
           octx.fillText(`${bp.id}:F`, cx + 6, cy + 6);
         }
@@ -98,7 +103,7 @@ export default function PdfMapper() {
         if (t.x != null && t.y != null) {
           const cx = Math.round(t.x);
           const cy = Math.round(ol.height - t.y);
-          drawDot(octx, cx, cy, i === idx ? "#0ea5e9" : "#2563eb");
+          drawDot(octx, cx, cy, i === idx ? colActive : colPlaced);
           octx.fillStyle = "#0f172a";
           octx.fillText(`${t.id}`, cx + 6, cy + 6);
         }
@@ -199,6 +204,11 @@ export default function PdfMapper() {
         <div className="text-xs text-slate-600 leading-5 bg-slate-100 p-2 rounded">
           1) PDF laden • 2) Mapping laden • 3) Feld wählen • 4) In PDF klicken (bei Ja/Nein zweimal). Markierungen sind verschiebbar: Marker anklicken und ziehen. Speichern lädt die aktualisierte JSON herunter.
         </div>
+        <div className="flex gap-2 text-sm">
+          <button className="px-2 py-1 border rounded" onClick={()=>{ document.body.classList.remove('theme-light','theme-graphite'); drawOverlay(); }}>Dark</button>
+          <button className="px-2 py-1 border rounded" onClick={()=>{ document.body.classList.add('theme-light'); document.body.classList.remove('theme-graphite'); drawOverlay(); }}>Light</button>
+          <button className="px-2 py-1 border rounded" onClick={()=>{ document.body.classList.add('theme-graphite'); document.body.classList.remove('theme-light'); drawOverlay(); }}>Graphit</button>
+        </div>
 
         <div>
           <label className="block text-sm mb-1">PDF laden</label>
@@ -230,7 +240,7 @@ export default function PdfMapper() {
               : (f as any).x != null && (f as any).y != null;
             return (
               <button key={(f as any).id}
-                className={`w-full text-left px-2 py-1 text-sm border-b last:border-0 hover:bg-slate-50 ${i===idx? 'bg-blue-50' : ''}`}
+                className={`w-full text-left px-2 py-1 text-sm border-b last:border-0 hover:brightness-110 ${i===idx? 'brightness-110' : ''}`}
                 onClick={()=>{ setIdx(i); setAwaitingFalse(false); }}>
                 <span className={`inline-block w-2 h-2 rounded-full mr-2 ${placed? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
                 {(f as any).id}

@@ -1,0 +1,94 @@
+/* CI color tokens (Dark default, Light, Graphite) */
+:root {
+  --color-base-cyan: #00faff;
+  --color-base-cyan-soft: rgba(0, 250, 255, 0.16);
+  --color-base-gold: #ffc300;
+  --color-base-gold-soft: rgba(255, 195, 0, 0.2);
+  --color-base-gray: #a0aec0;
+  --color-base-ink: #02080c;
+
+  --color-surface-body: #05080b;
+  --color-surface-header: rgba(7, 13, 17, 0.92);
+  --color-surface-overlay: rgba(15, 34, 42, 0.75);
+  --color-surface-card: #1a2930;
+  --color-surface-elevated: rgba(26, 41, 48, 0.8);
+
+  --color-border-primary: #2a3942;
+  --color-border-subtle: rgba(255, 255, 255, 0.07);
+
+  --color-text-primary: #f6f7fb;
+  --color-text-secondary: #bfc2c4;
+  --color-text-muted: #8ea0b4;
+  --color-text-inverse: var(--color-base-ink);
+
+  --color-action-primary: var(--color-base-cyan);
+  --color-action-primary-hover: var(--color-base-gold);
+  --color-action-secondary: rgba(0, 250, 255, 0.12);
+  --color-action-tertiary: rgba(255, 255, 255, 0.08);
+  --color-action-disabled: #475569;
+
+  --color-status-success: #00ff88;
+  --color-status-warning: #ff8800;
+  --color-status-error: #ff5555;
+  --color-status-info: #00aaff;
+
+  --effect-radius-sm: 8px;
+  --effect-radius-md: 14px;
+  --effect-radius-lg: 20px;
+  --effect-shadow-card: 0 18px 42px rgba(0, 0, 0, 0.35);
+  --effect-shadow-soft: 0 12px 28px rgba(0, 250, 255, 0.22);
+  --effect-shadow-border: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --effect-focus-ring: 0 0 0 2px rgba(0, 250, 255, 0.55);
+}
+
+body.theme-light {
+  --color-base-cyan-soft: rgba(27, 79, 117, 0.18);
+  --color-base-gold-soft: rgba(245, 177, 10, 0.18);
+
+  --color-surface-body: #d0d5e1;
+  --color-surface-header: rgba(205, 211, 222, 0.94);
+  --color-surface-overlay: rgba(210, 216, 227, 0.94);
+  --color-surface-card: #d9dee8;
+  --color-surface-elevated: rgba(219, 224, 233, 0.97);
+
+  --color-border-primary: #aeb8c6;
+  --color-border-subtle: rgba(27, 79, 117, 0.22);
+
+  --color-text-primary: #13222c;
+  --color-text-secondary: #2d4d60;
+  --color-text-muted: #5d7684;
+
+  --color-action-primary: #1b4f75;
+  --color-action-primary-hover: #f5b10a;
+  --color-action-secondary: rgba(27, 79, 117, 0.12);
+  --color-action-tertiary: rgba(29, 67, 96, 0.12);
+  --color-action-disabled: #c7d3da;
+
+  --effect-shadow-card: 0 18px 38px rgba(37, 78, 106, 0.16);
+  --effect-shadow-soft: 0 14px 30px rgba(27, 79, 117, 0.22);
+  --effect-shadow-border: inset 0 0 0 1px rgba(29, 67, 96, 0.12);
+  --effect-focus-ring: 0 0 0 2px rgba(27, 79, 117, 0.4);
+}
+
+body.theme-graphite {
+  --color-base-cyan: #ff4058;
+  --color-base-cyan-soft: rgba(255, 64, 88, 0.22);
+  --color-base-gold: #36d8ff;
+  --color-base-gold-soft: rgba(54, 216, 255, 0.2);
+
+  --color-action-primary: #ff4058;
+  --color-action-primary-hover: #36d8ff;
+  --color-action-secondary: rgba(255, 64, 88, 0.18);
+  --color-action-tertiary: rgba(54, 216, 255, 0.12);
+  --color-action-disabled: #545764;
+
+  --color-status-success: #30f2a2;
+  --color-status-warning: #ffaf40;
+  --color-status-error: #ff4058;
+  --color-status-info: #36d8ff;
+
+  --effect-shadow-soft: 0 16px 36px rgba(255, 64, 88, 0.22);
+  --effect-shadow-border: inset 0 0 0 1px rgba(54, 216, 255, 0.18);
+  --effect-focus-ring: 0 0 0 2px rgba(54, 216, 255, 0.55);
+}
+

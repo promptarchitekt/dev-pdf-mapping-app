@@ -1,7 +1,19 @@
+/* import CI tokens first */
+@import "./ci-tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html, body { height: 100%; }
-body { @apply bg-slate-50; }
+body {
+  background: var(--color-surface-body);
+  color: var(--color-text-primary);
+}
 
+/* basic theming for layout */
+aside { background: var(--color-surface-card); border-color: var(--color-border-primary); }
+.badge { background: var(--color-action-tertiary); border-color: var(--color-border-primary); }
+button { background: var(--color-action-tertiary); border-color: var(--color-border-primary); color: var(--color-text-primary); }
+button:hover { border-color: var(--color-action-primary); box-shadow: var(--effect-shadow-border); }
+input[type="file"], input[type="range"] { color: var(--color-text-primary); }

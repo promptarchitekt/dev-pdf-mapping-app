@@ -174,7 +174,7 @@ export default function PdfMapper() {
     ctx.fillStyle = color;
     ctx.strokeStyle = "#1f2937";
     ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI*2);
+    const r = Math.max(5, Math.round(scale * 5)); ctx.arc(x, y, r, 0, Math.PI*2);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
@@ -185,10 +185,10 @@ export default function PdfMapper() {
     const bg = css.getPropertyValue('--color-base-gold') || '#ffc300';
     const fg = css.getPropertyValue('--color-base-ink') || '#02080c';
     ctx.save();
-    ctx.font = "11px ui-sans-serif, system-ui";
+    const fs = Math.max(12, Math.round(11 * scale)); ctx.font = `${fs}px ui-sans-serif, system-ui`;
     const padX = 6;
     const w = Math.ceil(ctx.measureText(text).width) + padX * 2;
-    const h = 18;
+    const h = Math.max(18, Math.round(18 * scale));
     const rx = x + 10, ry = y + 6;
     const r = 6;
     ctx.beginPath();
@@ -198,12 +198,12 @@ export default function PdfMapper() {
     ctx.arcTo(rx, ry + h, rx, ry, r);
     ctx.arcTo(rx, ry, rx + w, ry, r);
     ctx.closePath();
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 1;
     ctx.fillStyle = bg as any;
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = fg as any;
-    ctx.fillText(text, rx + padX, ry + 4);
+    const padY = Math.max(4, Math.round(4*scale)); ctx.fillText(text, rx + padX, ry + padY);
     ctx.restore();
   };
 
@@ -453,6 +453,7 @@ export default function PdfMapper() {
     </div>
   );
 }
+
 
 
 

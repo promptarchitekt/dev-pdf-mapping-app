@@ -148,7 +148,8 @@ export default function PdfMapper() {
             octx.restore();
             const txt = sampleText(t);
             octx.save();
-            octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+            // Dark text so it is visible on white PDF background
+            octx.fillStyle = css.getPropertyValue('--color-base-ink') || '#111111';
             octx.font = `${fontSize}px ui-sans-serif, system-ui`;
             if (t.align === 'right') {
               octx.textAlign = 'right';
@@ -181,8 +182,8 @@ export default function PdfMapper() {
   const drawTag = (ctx: CanvasRenderingContext2D, x:number, y:number, text:string) => {
     if (!text) return;
     const css = getComputedStyle(document.body);
-    const bg = css.getPropertyValue('--color-action-tertiary') || 'rgba(255,255,255,0.08)';
-    const fg = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
+    const bg = css.getPropertyValue('--color-base-gold') || '#ffc300';
+    const fg = css.getPropertyValue('--color-base-ink') || '#02080c';
     ctx.save();
     ctx.font = "11px ui-sans-serif, system-ui";
     const padX = 6;
@@ -452,6 +453,7 @@ export default function PdfMapper() {
     </div>
   );
 }
+
 
 
 

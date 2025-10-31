@@ -201,7 +201,7 @@ export default function PdfMapper() {
     <div className="grid grid-cols-[320px_1fr] h-screen">
       <aside className="border-r border-slate-200 p-3 space-y-3 overflow-auto">
         <h3 className="font-semibold">Mapping platzieren</h3>
-        <div className="text-xs text-slate-600 leading-5 bg-slate-100 p-2 rounded">
+        <div className="well text-xs leading-5">
           1) PDF laden • 2) Mapping laden • 3) Feld wählen • 4) In PDF klicken (bei Ja/Nein zweimal). Markierungen sind verschiebbar: Marker anklicken und ziehen. Speichern lädt die aktualisierte JSON herunter.
         </div>
         <div className="flex gap-2 text-sm">

@@ -86,7 +86,7 @@ export default function PdfMapper() {
     octx.font = "12px ui-sans-serif, system-ui";
     octx.textBaseline = "top";
     const css = getComputedStyle(document.body);
-    const colActive = css.getPropertyValue('--color-action-primary').trim() || '#0ea5e9';
+    const colActive = css.getPropertyValue('--color-base-gold').trim() || '#ffc300';
     const colPlaced = css.getPropertyValue('--color-status-info').trim() || '#2563eb';
     const colTrue = css.getPropertyValue('--color-status-success').trim() || '#16a34a';
     const colFalse = css.getPropertyValue('--color-status-error').trim() || '#ef4444';
@@ -121,7 +121,6 @@ export default function PdfMapper() {
           const cx = Math.round(t.x);
           const cy = Math.round(ol.height - t.y);
           drawDot(octx, cx, cy, i === idx ? colActive : colPlaced);
-          octx.fillStyle = css.getPropertyValue('--color-text-primary') || '#e5e7eb';
           if (t.w) {
             const top = cy - (fontSize + 2);
             const height = fontSize + 6;
@@ -142,8 +141,10 @@ export default function PdfMapper() {
               octx.fillText(txt, cx + 2, cy - fontSize);
             }
             octx.restore();
+            // Always show field name label
+            drawTag(octx, cx, cy, `${t.id}`);
           } else {
-            octx.fillText(`${t.id}: ${sampleText(t)}`, cx + 8, cy + 6);
+            drawTag(octx, cx, cy, `${t.id}: ${sampleText(t)}`);
           }
         }
       }
@@ -414,6 +415,13 @@ export default function PdfMapper() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

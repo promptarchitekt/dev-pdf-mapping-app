@@ -1,9 +1,9 @@
-import PdfMapper from "../components/PdfMapper";
+import WizardSteps from "../components/WizardSteps";
 
 export default function Page() {
   return (
     <div className="h-screen">
-      <PdfMapper />
+      <WizardSteps />
     </div>
   );
 }
